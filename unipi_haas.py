@@ -22,9 +22,9 @@ IP_kmr = '192.168.0.159'     # for testing with kmr_server_simulation at telenet
 PORT = 30002  # Arbitrary non-privileged port
 
 # open socket to kmr server
-s_kmr = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print("Socket created")
-s_kmr.connect(IP_kmr)
+# s_kmr = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# print("Socket created")
+# s_kmr.connect(IP_kmr)
 
 td1 = 0.1  # time delay between switching
 rpt = 1  # nr of repeats in demo
@@ -88,7 +88,7 @@ def open_socket(IP, PORT):
             connect_answer = s.connect((IP, PORT))
         except:
             pass
-        print(connect_answer)
+        # print(connect_answer)
         if connect_answer is None:
             hostname = socket.gethostname()
             hostaddress = socket.getaddrinfo(IP_IIWA, PORT)
