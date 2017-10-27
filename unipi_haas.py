@@ -3,6 +3,7 @@ import socket
 import json
 import time
 import urllib2
+import sys
 
 # url_unipi = "ws://192.168.1.23/ws"    # (was IP at sirris.visitors)
 # url_unipi = "ws://192.168.0.149/ws"   # (was IP at telenet-22702)
@@ -91,7 +92,7 @@ def open_socket(IP, PORT):
         # print(connect_answer)
         if connect_answer is None:
             hostname = socket.gethostname()
-            hostaddress = socket.getaddrinfo(IP_IIWA, PORT)
+            hostaddress = socket.getaddrinfo(IP_kmr, PORT)
             print('Socket connected with hostname: {} at addressinfo:{}'.format(hostname, hostaddress))
             connection = True
             break
