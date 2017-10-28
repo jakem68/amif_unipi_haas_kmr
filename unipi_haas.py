@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+__author__ = 'Jan Kempeneers'
+
 import websocket
 import socket
 import json
@@ -19,7 +22,7 @@ ws_unipi.connect(url_unipi)
 
 # IP address kmr server and communication port
 # IP_kmr = ''
-IP_kmr = '192.168.0.159'     # for testing with kmr_server_simulation at telenet-22702
+IP_kmr = '192.168.0.159'     # for testing with kmr_server_simulation at telenet-22702, change to kmr IP = 172.31.1.10
 PORT = 30002  # Arbitrary non-privileged port
 
 # open socket to kmr server
@@ -97,9 +100,21 @@ def open_socket(IP, PORT):
             connection = True
             break
     else:
-        print('unable to establish socket connection to iiwa')
+        print('unable to establish socket communication to kmr')
         connection = False
     return s, connection
+
+
+# wait for socket to kmr to open
+def ring_server():
+    kmr_socket_connection = False
+    while not kmr_socket_connection:
+        kmr_socket_object = open_socket(IP_kmr, PORT)
+        kmr_socket = kmr_socket_object[0]
+        kmr_socket_connection = kmr_socket_object[1]
+    # set socket timeout
+    kmr_socket.settimeout(2)
+    return kmr_socket
 
 
 def read_socket(s):
@@ -111,7 +126,8 @@ def read_socket(s):
         print('socket timed out')
         pass
     except:
-        sys.exit(1)
+        print"can't read socket anymore, ringing the server again."
+        pass
     if msg:
         print('received msg: {}'.format(msg))
     else:
@@ -140,43 +156,51 @@ def demo():
             ws_unipi.send(msg)
             time.sleep(td1)
 
+def toggle_relay9(nr):
+    for i in range (nr):
+        set_device('relay', '3', '1')
+        time.sleep(td1)
+        set_device('relay', '3', '0')
+        time.sleep(td1)
 
-demo()
-
-set_device('relay', '3', '1')
-time.sleep(1)
-set_device('relay', '3', '0')
-
-# wait for socket to kmr to open
-kmr_socket_connection = False
-while not kmr_socket_connection:
-    kmr_socket_object = open_socket(IP_kmr, PORT)
-    kmr_socket = kmr_socket_object[0]
-    kmr_socket_connection = kmr_socket_object[1]
-
-# set socket timeout
-kmr_socket.settimeout(2)
-
-# send first status of haas to kmr server
-status_haas = monitor_haas()
-kmr_socket.send(status_haas)
-
-while True:
+def main():
+    # demo()
+    toggle_relay9(3)    # sounds relay 9 to signal there is no socket connection but is retrying.
+    set_device('relay', '1', '0')
+    kmr_socket = ring_server()
     kmr_msg = read_socket(kmr_socket)
-    time.sleep(1)
-    if kmr_msg == start_haas_var:
-        if monitor_haas() == ready:
-            status_haas = busy
-            start_haas()
-            kmr_socket.send(status_haas)
+
+    # send first status of haas to kmr server
+    status_haas = monitor_haas()
+    kmr_socket.send(status_haas)
+
+    while not kmr_msg is None:
+        kmr_msg = read_socket(kmr_socket)
+        # heartbeat on relay9 indicating connection established
+        set_device('relay', '9', '1')
+        time.sleep(1)
+        set_device('relay', '9', '0')
+        if kmr_msg == start_haas_var:
+            print 'received start haas command'
+            if monitor_haas() == ready:
+                status_haas = busy
+                start_haas()
+                kmr_socket.send(status_haas)
+            else:
+                status_haas = monitor_haas()
+                print'something went wrong! status haas was not ready and nevertheless start command was given, ' \
+                     'status haas was %s' % status_haas
+                kmr_socket.send(status_haas)
         else:
             status_haas = monitor_haas()
-            print'something went wrong! status haas was not ready and nevertheless start command was sent, ' \
-                 'status haas was %s' % status_haas
-            kmr_socket.send(status_haas)
-    else:
-        status_haas = monitor_haas()
-        print(status_haas)
-        kmr_socket.send(status_haas)
+            print(status_haas)
+            try:
+                kmr_socket.send(status_haas)
+            except:
+                kmr_msg = None
+                pass
+    # ws_unipi.close()
+    main()
 
-ws_unipi.close()
+if __name__ == "__main__":
+    main()
