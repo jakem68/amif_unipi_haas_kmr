@@ -177,9 +177,8 @@ def main():
     while not kmr_msg is None:
         kmr_msg = read_socket(kmr_socket)
         # heartbeat on relay9 indicating connection established
-        set_device('relay', '9', '1')
+        toggle_relay9(1)
         time.sleep(1)
-        set_device('relay', '9', '0')
         if kmr_msg == start_haas_var:
             print 'received start haas command'
             if monitor_haas() == ready:
