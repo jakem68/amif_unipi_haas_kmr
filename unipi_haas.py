@@ -20,7 +20,7 @@ http_url_unipi_all = "http://127.0.0.1/rest/all"        # (running locally on rp
 ws_unipi = websocket.WebSocket()
 ws_unipi.connect(url_unipi)
 
-# IP address kmr server and communication port
+# IP address kmr server and communication por
 # IP_kmr = ''
 IP_kmr = '192.168.0.159'     # for testing with kmr_server_simulation at telenet-22702, change to kmr IP = 172.31.1.10
 PORT = 30002  # Arbitrary non-privileged port
