@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/unipi_test.iml" filepath="$PROJECT_DIR$/unipi_test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/unipi_haas_kmr.iml" filepath="$PROJECT_DIR$/unipi_haas_kmr.iml" />
     </modules>
   </component>
 </project>
