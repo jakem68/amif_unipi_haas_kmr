@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+
 __author__ = 'Jan Kempeneers'
 
 import websocket
 import socket
+import select
 import json
 import time
 import urllib2
-import sys
+import log
 
 # <editor-fold desc="global values">
 '''
@@ -16,11 +18,11 @@ relay 3 = 'clamp control: 1 = close; 0 = open'
 
 # url_unipi = "ws://192.168.1.23/ws"    # (was IP at sirris.visitors)
 # url_unipi = "ws://192.168.0.149/ws"   # (was IP at telenet-22702)
-url_unipi = "ws://127.0.0.1/ws"         # (running locally on rpi)
+url_unipi = "ws://127.0.0.1/ws"  # (running locally on rpi)
 
 # http_url_unipi_all = "http://192.168.1.23/rest/all"   # (was IP at sirris.visitors)
 # http_url_unipi_all = "http://192.168.0.149/rest/all"  # (was IP at telenet-22702)
-http_url_unipi_all = "http://127.0.0.1/rest/all"        # (running locally on rpi)
+http_url_unipi_all = "http://127.0.0.1/rest/all"  # (running locally on rpi)
 
 # open websocket to unipi server
 ws_unipi = websocket.WebSocket()
@@ -28,7 +30,7 @@ ws_unipi.connect(url_unipi)
 
 # IP address kmr server and communication port
 # IP_kmr = ''
-IP_kmr = '172.31.1.10'     # for testing with kmr_server_simulation at telenet-22702, change to kmr IP = 172.31.1.10
+IP_kmr = '172.31.1.10'  # kmr_network kmr IP = 172.31.1.10, server_simulator op sirris.visitors IP = 192.168.1.44
 PORT = 30002  # Arbitrary non-privileged port
 
 # open socket to kmr server
@@ -52,10 +54,15 @@ busy = b'102'
 finished = b'103'
 closed = 1
 open = 0
+
+log_file = "/home/pi/programs/log_file.txt"
+l = log.Log(log_file)
+
 # </editor-fold>
 
 
-def get_status(dev, circuit):   # dev is string of device pe 'input' see unipi description https://github.com/UniPiTechnology/evok
+def get_status(dev,
+               circuit):  # dev is string of device pe 'input' see unipi description https://github.com/UniPiTechnology/evok
     status_all = json.loads(urllib2.urlopen(http_url_unipi_all).read())
     for d in status_all:
         if d['dev'] == dev and d['circuit'] == circuit:
@@ -69,31 +76,36 @@ def set_device(dev, circuit, value):
     ws_unipi.send(msg)
     time.sleep(td1)
 
+
 # clamp connected on relay3
 def monitor_clamp():
     status_clamp = get_status('relay', '3')
     return status_clamp
 
+
 def close_clamp():
     set_device('relay', '3', '1')
+
 
 def open_clamp():
     set_device('relay', '3', '0')
 
+
 # relay1 for controlling haas, relay2 is optional
 def monitor_haas():
-    status_haas= busy
     input1 = get_status('input', '1')
     input2 = get_status('input', '2')
     if input1:
+        status_haas = busy
+    else:
         status_haas = ready
-    if input2:
-        status_haas = busy
-    if input1 and input2:
-        status_haas = busy
-        print 'something is wrong! input 1 and input 2 ar both high'
-    if not input1 and not input2:
-        status_haas = busy
+    # if input2:
+    #     status_haas = busy
+    # if input1 and input2:
+    #     status_haas = busy
+    #     print 'something is wrong! input 1 and input 2 ar both high'
+    # if not input1 and not input2:
+    #     status_haas = busy
     return status_haas
 
 
@@ -101,31 +113,37 @@ def start_haas():
     set_device('relay', '1', '1')
 
 
+def start_haas_end():
+    set_device('relay', '1', '0')
+
+
 def open_socket(IP, PORT):
-    max_retries = 3
-    connect_answer = 'a'
     # open a socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Socket created")
 
-
     # try to connect to server
-    for i in range(max_retries):
-        try:
-            connect_answer = s.connect((IP, PORT))
-        except:
-            pass
-        # print(connect_answer)
-        if connect_answer is None:
-            hostname = socket.gethostname()
-            hostaddress = socket.getaddrinfo(IP_kmr, PORT)
-            print('Socket connected with hostname: {} at addressinfo:{}'.format(hostname, hostaddress))
-            connection = True
-            break
-    else:
-        print('unable to establish socket communication to kmr')
+    try:
+        print ("socket connect answer is blabla")
+        connect_answer = s.connect((IP, PORT))
+        # print ("socket connect answer is {}".format(connect_answer))
+        connection = True
+    except:
+        print("failure on s.connect")
         connection = False
+        s.close()
+        time.sleep(0.1)
+        pass
     return s, connection
+
+# clear socket buffer
+def empty_socket(sock):
+    """remove the data present on the socket"""
+    input = [sock]
+    while 1:
+        inputready, o, e = select.select(input,[],[], 0.0)
+        if len(inputready)==0: break
+        for s in inputready: s.recv(1)
 
 
 # wait for socket to kmr to open
@@ -179,12 +197,14 @@ def demo():
             ws_unipi.send(msg)
             time.sleep(td1)
 
+
 def toggle_relay8(nr):
-    for i in range (nr):
+    for i in range(nr):
         set_device('relay', '8', '1')
         time.sleep(td1)
         set_device('relay', '8', '0')
         time.sleep(td1)
+
 
 def monitor_overall():
     status_overall = busy  # initialization
@@ -199,11 +219,10 @@ def monitor_overall():
     return status_overall
 
 
-
 def main():
     # demo()
-    toggle_relay8(3)    # sounds relay 9 to signal there is no socket connection but is retrying.
-    set_device('relay', '1', '0')    # make sure 'cycle start' relay is off when starting
+    toggle_relay8(3)  # sounds relay 9 to signal there is no socket connection but is retrying.
+    set_device('relay', '1', '0')  # make sure 'cycle start' relay is off when starting
     kmr_socket = ring_server()
     kmr_msg = read_socket(kmr_socket)
 
@@ -218,11 +237,20 @@ def main():
         toggle_relay8(1)
         time.sleep(1)
         if kmr_msg == start_haas_var:
-            print 'received start haas command'
+            print 'received start Haas command, starting Haas machine'
             if monitor_haas() == ready:
+                # add an entry in the log file
+                l.main()
+                # send one start to Haas upfront in case Haas machine is in sleep mode
                 start_haas()
-                status_overall = busy
-                kmr_socket.send(status_overall)
+                time.sleep(1)
+                start_haas_end()
+                time.sleep(0.5)
+                while monitor_haas() == ready:
+                    start_haas()
+                    status_overall = busy
+                    kmr_socket.send(status_overall)
+                start_haas_end()
             else:
                 status_overall = monitor_overall()
                 print'something went wrong! status was not ready and nevertheless start command was given, ' \
@@ -251,7 +279,9 @@ def main():
                 pass
 
     # ws_unipi.close()
+    kmr_socket.close()
     main()
+
 
 if __name__ == "__main__":
     open_clamp()

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # to allow for socket communication
 import socket
 import sys
