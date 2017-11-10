@@ -9,6 +9,7 @@ import json
 import time
 import urllib2
 import log
+from subprocess import call
 
 # <editor-fold desc="global values">
 '''
@@ -39,7 +40,7 @@ PORT = 30002  # Arbitrary non-privileged port
 # s_kmr.connect(IP_kmr)
 
 td1 = 0.1  # time delay between switching
-rpt = 1  # nr of repeats in demo
+rpt = 1  # nr of repeats in unipi demo
 
 # requests from server kmr
 start_haas_var = b'(3)/n'
@@ -56,7 +57,7 @@ closed = 1
 open = 0
 
 log_file = "/home/pi/programs/log_file.txt"
-l = log.Log(log_file)
+logger = log.Log(log_file)
 
 # </editor-fold>
 
@@ -219,7 +220,15 @@ def monitor_overall():
     return status_overall
 
 
+def check_poweroff():
+    shutdown = get_status('relay', '7')
+    if shutdown:
+        call("sudo nohup shutdown -h now", shell=True)
+    pass
+
+
 def main():
+    check_poweroff()
     # demo()
     toggle_relay8(3)  # sounds relay 9 to signal there is no socket connection but is retrying.
     set_device('relay', '1', '0')  # make sure 'cycle start' relay is off when starting
@@ -231,16 +240,17 @@ def main():
     kmr_socket.send(status_overall)
 
     while not kmr_msg is None:
+        check_poweroff()
         status_overall = monitor_overall()
         kmr_msg = read_socket(kmr_socket)
-        # heartbeat on relay9 indicating connection established
-        toggle_relay8(1)
+        # heartbeat on relay8 indicating connection established
+        # toggle_relay8(1)
         time.sleep(1)
         if kmr_msg == start_haas_var:
             print 'received start Haas command, starting Haas machine'
             if monitor_haas() == ready:
                 # add an entry in the log file
-                l.main()
+                logger.log_entry(log_file)
                 # send one start to Haas upfront in case Haas machine is in sleep mode
                 start_haas()
                 time.sleep(1)
