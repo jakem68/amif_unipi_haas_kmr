@@ -23,7 +23,7 @@ def read_file():
         try:
             lines = f.readlines()
         except:
-            print 'file not found or file empty'
+            print('file not found or file empty')
             return None
     # read first (oldest) entry
     firstline = lines[0]
@@ -45,7 +45,13 @@ def read_file():
             produced_today = total_produced - first_total_today + 1
             break
         else:
-            produced_today = 1
+            produced_today = 0
+            first_time_today = day_start_time
+            elapsed_time_today = now - first_time_today
+            elapsed_seconds_today = elapsed_time_today.total_seconds()
+            time_left_today = day_end_time - now
+            seconds_left_today = time_left_today.total_seconds()
+
 
     if produced_today > 1:
         elapsed_time_today = now - first_time_today
@@ -59,20 +65,20 @@ def read_file():
             projected_quantity_today = produced_today + int(round(pace_today * seconds_left_today))
             production_data["projected quantity today"] = projected_quantity_today
         except:
-            print "only 1 part produced so far, no forecast possible yet"
+            print("only 1 part produced so far, no forecast possible yet")
             pass
-    elif produced_today == 1:
-        production_data["produced today"] = produced_today
-        print "only 1 part produced today, no forecast possible yet"
-    if produced_today:
-        production_data["produced today"] = produced_today
-        production_data["elapsed time today"] = elapsed_seconds_today
-        production_data["time left today"] = seconds_left_today
-        production_data["last time produced"] = str_last_time_produced
-        production_data["first time produced"] = str_first_time_produced
-        production_data["total produced"] = total_produced
-        production_data["time_last_message"] = str_now
-    print production_data
+    else:
+        production_data["projected quantity today"] = 0
+        print ("less than two parts produced today, no forecast possible yet")
+
+    production_data["produced today"] = produced_today
+    production_data["elapsed time today"] = elapsed_seconds_today
+    production_data["time left today"] = seconds_left_today
+    production_data["last time produced"] = str_last_time_produced
+    production_data["first time produced"] = str_first_time_produced
+    production_data["total produced"] = total_produced
+    production_data["time_last_message"] = str_now
+    print(production_data)
     return production_data
 
 
