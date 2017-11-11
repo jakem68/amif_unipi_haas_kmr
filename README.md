@@ -1,4 +1,4 @@
-# unipi_test
+# amif_unipi_haas_kmr
 Python program running on RaspberryPi with Unipi to communicatie the status of a Haas Mini-Mill machine via socket when requested.
 - unipi_haas.py = communication
 - log.py = for logging to a log_file
