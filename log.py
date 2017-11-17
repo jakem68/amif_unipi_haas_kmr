@@ -8,6 +8,7 @@ import datetime
 class Log(object):
 
     def __init__(self, logfile="/home/pi/programs/log_file.txt"):
+    # def __init__(self, logfile="/home/jan/temp/log_file.txt"):
         self.log_file = logfile
         self.day_start_time = datetime.datetime.now().replace(hour=8, minute=0, second=0).strftime('%Y-%m-%d %H:%M:%S')
         self.day_end_time = datetime.datetime.now().replace(hour=17, minute=0, second=0).strftime('%Y-%m-%d %H:%M:%S')
